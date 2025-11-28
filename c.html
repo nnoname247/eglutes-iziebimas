@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="lt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Modernus Įžiebimas</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0f1724; 
+      --accent: #8be9fd; 
+      --accent2:#7c4dff; 
+      --success:#54e346;
+    }
+    *{box-sizing:border-box;font-family:Inter,system-ui,sans-serif;user-select:none;-webkit-user-select:none; -webkit-tap-highlight-color: transparent;}
+    
+    html,body{
+      height:100%; margin:0; overflow:hidden;
+      background:linear-gradient(180deg,#050b1a 0%, #08142a 100%);
+      color:#e6eef8;
+    }
+
+    .wrap{
+      height:100%; width:100%;
+      display:flex; align-items:center; justify-content:center;
+      padding:16px;
+    }
+    
+    .card{
+      width:950px; max-width:100%; 
+      height:auto; max-height:100%;
+      background:linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border-radius:20px; padding:20px;
+      box-shadow:0 10px 40px rgba(0,0,0,0.5);
+      border:1px solid rgba(255,255,255,0.08);
+      
+      display:flex; flex-direction:row; gap:20px;
+      overflow-y:auto; 
+    }
+
+    /* Kairė pusė - Eglutė */
+    .stage{
+      flex:1;
+      background:rgba(0,0,0,0.3);
+      border-radius:16px;
+      padding:10px;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      position:relative;
+      min-height:300px;
+    }
+    
+    .tree-zone{position:relative;width:240px;height:320px;display:flex;justify-content:center;align-items:flex-end; transform-origin: bottom center;}
+    .tree{width:220px;height:300px;position:relative;z-index:1}
+    
+    .branch{position:absolute;left:50%;transform:translateX(-50%);width:0;height:0;border-left:110px solid transparent;border-right:110px solid transparent;filter:drop-shadow(0 10px 10px rgba(0,0,0,0.5))}
+    .b1{top:10px;border-bottom:90px solid #1a5c30;z-index:3}
+    .b2{top:80px;border-bottom:100px solid #144a25;z-index:2}
+    .b3{top:160px;border-bottom:120px solid #0f3b1d;z-index:1}
+    .trunk{position:absolute;left:50%;transform:translateX(-50%);bottom:-10px;width:34px;height:40px;background:#3e2312;border-radius:4px}
+
+    /* Ryškios lemputės */
+    .bulb{
+      position:absolute; width:8px; height:8px; border-radius:50%; 
+      background:#333; z-index:4; 
+      transition:all 0.4s ease-out;
+    }
+    .bulb.on{
+      box-shadow: 0 0 4px #fff, 0 0 12px currentColor, 0 0 25px currentColor, 0 0 40px currentColor; 
+      animation: pulseLight 1.5s infinite alternate ease-in-out;
+    }
+    @keyframes pulseLight { 0%{opacity:0.85; transform:scale(1)} 100%{opacity:1; transform:scale(1.25)} }
+
+    /* Žaisliukai ant eglutės */
+    .placed-orn{
+      position:absolute; width:22px; height:22px; border-radius:50%; z-index:5;
+      box-shadow:0 3px 8px rgba(0,0,0,0.6);
+      transform:scale(0); animation:popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      border:1px solid rgba(255,255,255,0.3);
+    }
+    @keyframes popIn{to{transform:scale(1)}}
+
+    /* Paletė apačioje */
+    .palette-area{
+      width:100%; margin-top:auto; padding-top:10px;
+      display:flex; flex-direction:column; align-items:center; gap:8px;
+    }
+    .ornament-palette{display:flex; gap:12px; justify-content:center; flex-wrap:wrap;}
+    .orn{
+      width:44px; height:44px; border-radius:50%;
+      cursor:pointer; transition:transform 0.2s;
+      border:2px solid rgba(255,255,255,0.15);
+      position:relative;
+    }
+    .orn:active{transform:scale(0.9)}
+    .orn.used{opacity:0.2;pointer-events:none;filter:grayscale(1)}
+
+    /* Pabaigos žinutė po eglute */
+    .final-message-container {
+      margin-top: 15px;
+      min-height: 40px;
+      text-align: center;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .final-msg {
+      font-size: 16px; color: #ffd700; font-weight: 700;
+      opacity: 0; transform: translateY(10px); transition: all 1s ease;
+      text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+      line-height: 1.4;
+    }
+    .final-msg.visible { opacity: 1; transform: translateY(0); }
+
+    /* Dešinė pusė - Valdymas */
+    .panel{
+      flex:0.8; display:flex; flex-direction:column; 
+      justify-content:flex-start; align-items:center; gap:20px; text-align:center; padding-top: 20px;
+    }
+    
+    .panel h1{font-size:24px; margin:0; line-height:1.3; background: linear-gradient(to right, #fff, #bcd9ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent;}
+    .panel p.lead{font-size:14px; color:#bcd9ffaa; margin:0}
+
+    /* Mygtukas */
+    .power-btn{
+      width:110px; height:110px; border-radius:50%;
+      background:radial-gradient(circle, #1e2a45, #0b1221);
+      border:4px solid rgba(255,255,255,0.08);
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; position:relative; overflow:hidden;
+      box-shadow:0 15px 35px rgba(0,0,0,0.4);
+      transition: transform 0.2s, box-shadow 0.3s;
+      margin-top: 20px;
+    }
+    .power-btn.locked{opacity:0.5; filter:grayscale(0.8);}
+    .power-btn:active:not(.locked){transform:scale(0.94)}
+    .power-icon{font-size:40px; color:var(--accent); z-index:2; transition: color 0.3s}
+    
+    .progress-fill{
+      position:absolute; bottom:0; left:0; width:100%; height:0%;
+      background:linear-gradient(0deg, var(--accent2), var(--accent));
+      opacity:0.4; z-index:1; transition: height 0.1s;
+    }
+    .power-btn.charging .progress-fill { height: 100%; transition: height 2s linear; opacity: 0.9; }
+    
+    body.lights-on .power-btn { box-shadow: 0 0 60px var(--accent2); border-color:#fff; }
+    body.lights-on .power-icon { color: #fff; text-shadow:0 0 20px #fff; }
+
+    /* Mobile */
+    @media (max-width: 850px) {
+      .card{ flex-direction: column; padding: 16px; gap: 16px; }
+      .stage{ flex:none; padding-bottom: 20px; }
+      .tree-zone{ transform: scale(0.95); height: 300px; }
+      .panel{ flex:none; gap: 16px; padding-top:0;}
+      .panel h1 { font-size: 20px; }
+      .power-btn{ width:90px; height:90px; margin-top: 10px; }
+      .orn{width:42px; height:42px;}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      
+      <div class="stage" id="dropZone">
+        <div class="tree-zone">
+          <div class="tree" id="tree">
+            <div class="branch b1"></div>
+            <div class="branch b2"></div>
+            <div class="branch b3"></div>
+            <div class="trunk"></div>
+            
+            <div id="lights-container"></div>
+            <div id="ornaments-container"></div>
+          </div>
+        </div>
+
+        <div class="final-message-container">
+            <div class="final-msg" id="finalMsg">
+                O dabar įžiebk ne moderniąją,<br>o tikrąją eglutę! ✨
+            </div>
+        </div>
+
+        <div class="palette-area" id="paletteArea">
+          <div style="font-size:12px;color:#8be9fd;opacity:0.7;margin-bottom:4px">Tempk arba spausk (5 vnt.)</div>
+          <div class="ornament-palette">
+            <div class="orn" draggable="true" id="o1" data-color="#ff4757" style="background:radial-gradient(circle at 30% 30%, #ff6b81, #c4001d);"></div>
+            <div class="orn" draggable="true" id="o2" data-color="#ffa502" style="background:radial-gradient(circle at 30% 30%, #ffd32a, #ff9f1a);"></div>
+            <div class="orn" draggable="true" id="o3" data-color="#2ed573" style="background:radial-gradient(circle at 30% 30%, #7bed9f, #26af61);"></div>
+            <div class="orn" draggable="true" id="o4" data-color="#1e90ff" style="background:radial-gradient(circle at 30% 30%, #70a1ff, #1e90ff);"></div>
+            <div class="orn" draggable="true" id="o5" data-color="#a55eea" style="background:radial-gradient(circle at 30% 30%, #d980fa, #a55eea);"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div>
+          <h1>Modernus Kalėdų Senelis kviečia į modernų įžiebimą</h1>
+          <p class="lead" style="margin-top:10px">1. Papuošk eglutę 5 žaisliukais.<br>2. Palaikyk mygtuką, kol įsikraus.</p>
+        </div>
+
+        <div class="power-btn locked" id="powerBtn">
+          <div class="progress-fill"></div>
+          <span class="power-icon">⏻</span>
+        </div>
+
+        <div style="text-align:center">
+          <div id="statusText" style="font-weight:700;color:#888;font-size:14px">Laukiama papuošimų...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+  const ornContainer = document.getElementById('ornaments-container');
+  const lightsContainer = document.getElementById('lights-container');
+  const orns = document.querySelectorAll('.orn');
+  const powerBtn = document.getElementById('powerBtn');
+  const statusText = document.getElementById('statusText');
+  const dropZone = document.getElementById('dropZone');
+  const finalMsg = document.getElementById('finalMsg');
+  const paletteArea = document.getElementById('paletteArea');
+
+  let placedCount = 0;
+  const totalRequired = 5;
+  let isUnlocked = false;
+  let isPoweredOn = false;
+  let chargeTimer = null;
+
+  // 1. GENERUOJAM RYŠKIAS LEMPUTES
+  const bulbPositions = [
+    {top: 40, left: 105}, {top: 70, left: 90}, {top: 75, left: 125},
+    {top: 110, left: 70}, {top: 120, left: 110}, {top: 115, left: 150},
+    {top: 160, left: 50}, {top: 170, left: 90}, {top: 165, left: 130}, {top: 175, left: 170},
+    {top: 200, left: 30}, {top: 210, left: 75}, {top: 220, left: 120}, {top: 215, left: 160}
+  ];
+
+  bulbPositions.forEach(pos => {
+    const b = document.createElement('div');
+    b.className = 'bulb';
+    b.style.top = pos.top + 'px';
+    b.style.left = pos.left + 'px';
+    const colors = ['#ff0055', '#ffe600', '#00ffaa', '#00ccff', '#aa00ff'];
+    b.style.color = colors[Math.floor(Math.random()*colors.length)];
+    lightsContainer.appendChild(b);
+  });
+
+  // 2. DRAG & DROP LOGIKA
+  const handlePlace = (ornElement) => {
+    if(ornElement.classList.contains('used')) return;
+    
+    ornElement.classList.add('used');
+    
+    const newOrn = document.createElement('div');
+    newOrn.className = 'placed-orn';
+    newOrn.style.background = ornElement.dataset.color;
+    
+    // Atsitiktinė vieta ant eglės
+    const y = 50 + Math.random() * 180;
+    const widthAtY = y * 0.6; 
+    const x = 110 + (Math.random() * widthAtY - widthAtY/2) - 11;
+    
+    newOrn.style.top = y + 'px';
+    newOrn.style.left = x + 'px';
+    ornContainer.appendChild(newOrn);
+
+    placedCount++;
+    checkStatus();
+  };
+
+  orns.forEach(o => {
+    o.addEventListener('dragstart', (e) => { e.dataTransfer.setData('id', o.id); });
+    o.addEventListener('click', () => handlePlace(o));
+  });
+
+  dropZone.addEventListener('dragover', e => e.preventDefault());
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    const id = e.dataTransfer.getData('id');
+    const el = document.getElementById(id);
+    if(el) handlePlace(el);
+  });
+
+  function checkStatus() {
+    if(placedCount >= totalRequired) {
+      isUnlocked = true;
+      powerBtn.classList.remove('locked');
+      statusText.textContent = "Paruošta – Palaikyk mygtuką";
+      statusText.style.color = "#fff";
+      if(navigator.vibrate) navigator.vibrate(50);
+    } else {
+      statusText.textContent = `Dar trūksta: ${totalRequired - placedCount}`;
+    }
+  }
+
+  // 3. ĮJUNGIMAS
+  const startCharge = (e) => {
+    if(!isUnlocked || isPoweredOn) return;
+    e.preventDefault(); 
+    powerBtn.classList.add('charging');
+    chargeTimer = setTimeout(turnOnLights, 2000); 
+  };
+
+  const stopCharge = () => {
+    if(isPoweredOn) return;
+    powerBtn.classList.remove('charging');
+    clearTimeout(chargeTimer);
+  };
+
+  const turnOnLights = () => {
+    isPoweredOn = true;
+    document.body.classList.add('lights-on');
+    powerBtn.classList.remove('charging');
+    
+    statusText.textContent = "EGLUTĖ ĮŽIEBTA!";
+    statusText.style.color = "#54e346";
+    
+    // Paslepiam paletę, kad netrukdytų žinutei
+    paletteArea.style.opacity = '0';
+    paletteArea.style.pointerEvents = 'none';
+
+    // Rodyti žinutę
+    setTimeout(() => {
+        finalMsg.classList.add('visible');
+    }, 500);
+
+    // Lemputės
+    document.querySelectorAll('.bulb').forEach((b) => {
+      setTimeout(() => { b.classList.add('on'); }, Math.random() * 800);
+    });
+
+    if(navigator.vibrate) navigator.vibrate([100,50,100]);
+  };
+
+  powerBtn.addEventListener('mousedown', startCharge);
+  powerBtn.addEventListener('touchstart', startCharge, {passive: false});
+  document.addEventListener('mouseup', stopCharge);
+  document.addEventListener('touchend', stopCharge);
+</script>
+</body>
+</html>
