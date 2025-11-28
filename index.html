@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Modernus Įžiebimas</title>
+  <title>Kalėdinis Iššūkis</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
   <style>
     :root{
@@ -11,11 +11,10 @@
       --accent: #8be9fd; 
       --accent2:#7c4dff; 
       --success:#54e346;
+      --card-bg: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      --border: rgba(255,255,255,0.08);
     }
     *{box-sizing:border-box;font-family:Inter,system-ui,sans-serif;-webkit-tap-highlight-color: transparent;}
-    .stage, .tree, .branch, .trunk, .bulb, .placed-orn {
-      user-select:none;-webkit-user-select:none;
-    }
     
     html,body{
       height:100%; margin:0; overflow:hidden;
@@ -27,21 +26,94 @@
       height:100%; width:100%;
       display:flex; align-items:center; justify-content:center;
       padding:16px;
+      overflow-y: auto; /* Svarbu mobiliesiems viktorinos metu */
     }
     
+    /* Bendra kortelės stilistika */
     .card{
       width:950px; max-width:100%; 
       height:auto; max-height:100%;
-      background:linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      background: var(--card-bg);
       border-radius:20px; padding:20px;
       box-shadow:0 10px 40px rgba(0,0,0,0.5);
-      border:1px solid rgba(255,255,255,0.08);
-      
-      display:flex; flex-direction:row; gap:20px;
-      overflow-y:auto; 
+      border:1px solid var(--border);
+      position: relative;
     }
 
-    /* Kairė pusė - Eglutė */
+    /* --- VIKTORINOS STILIUS --- */
+    #quiz-view {
+      display: flex; /* Pradžioje rodoma */
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+    }
+    
+    .quiz-container {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .quiz-header h1 {
+      text-align: center;
+      background: linear-gradient(to right, #fff, #bcd9ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+    }
+    
+    .q-item {
+      background: rgba(0,0,0,0.3);
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 15px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .q-item h3 { margin: 0 0 10px 0; color: var(--accent); font-size: 16px; }
+    .q-item label { 
+      display: flex; align-items: center; padding: 8px 0; cursor: pointer; 
+      transition: color 0.2s;
+    }
+    .q-item label:hover { color: var(--accent2); }
+    .q-item input { margin-right: 10px; accent-color: var(--accent2); transform: scale(1.2); }
+
+    .quiz-btn {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(45deg, var(--accent2), #5d2de0);
+      border: none;
+      color: white;
+      font-weight: 800;
+      font-size: 18px;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-top: 20px;
+      box-shadow: 0 4px 15px rgba(124, 77, 255, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .quiz-btn:active { transform: scale(0.98); }
+    
+    #quiz-result {
+      text-align: center; margin-top: 20px; font-size: 18px; font-weight: bold; min-height: 30px;
+    }
+    .text-fail { color: #ff4757; }
+    .text-success { color: #2ed573; }
+
+    /* --- EGLUTĖS STILIUS (iš originalaus failo) --- */
+    #tree-view {
+      display: none; /* Pradžioje paslėpta */
+      flex-direction: row; 
+      gap:20px;
+      height: 100%;
+      width: 100%;
+    }
+
+    .stage, .tree, .branch, .trunk, .bulb, .placed-orn {
+      user-select:none;-webkit-user-select:none;
+    }
+
     .stage{
       flex:1;
       background:rgba(0,0,0,0.3);
@@ -153,9 +225,7 @@
     .power-btn:active:not(.locked){transform:scale(0.94)}
     
     .power-icon{
-      width: 50px;
-      height: 50px;
-      z-index:2;
+      width: 50px; height: 50px; z-index:2;
       transition: all 0.3s;
       fill: var(--accent);
       filter: drop-shadow(0 0 8px var(--accent));
@@ -202,7 +272,9 @@
 
     /* Mobile */
     @media (max-width: 850px) {
-      .card{ flex-direction: column; padding: 16px; gap: 16px; }
+      .wrap { display: block; overflow-y: scroll; } /* Kad galėtų scrollinti viktoriną */
+      .card{ flex-direction: column; padding: 16px; gap: 16px; overflow: visible; height: auto; min-height: 100%;}
+      #tree-view { flex-direction: column; }
       .stage{ flex:none; padding-bottom: 20px; }
       .tree-zone{ transform: scale(0.95); height: 300px; }
       .panel{ flex:none; gap: 16px; padding-top:0;}
@@ -215,65 +287,152 @@
   </style>
 </head>
 <body>
-  <!-- Snaigių sluoksnis -->
   <div id="snow-layer"></div>
 
   <div class="wrap">
     <div class="card">
       
-      <div class="stage" id="dropZone">
-        <div class="tree-zone">
-          <div class="tree" id="tree">
-            <div class="branch b1"></div>
-            <div class="branch b2"></div>
-            <div class="branch b3"></div>
-            <div class="trunk"></div>
-            
-            <div id="lights-container"></div>
-            <div id="ornaments-container"></div>
-          </div>
+      <div id="quiz-view">
+        <div class="quiz-header">
+          <h1>🎄 Kalėdų Bilietas</h1>
+          <p style="text-align:center; color:#bcd9ffaa; margin-bottom:20px;">
+            Atsakyk į klausimus, kad gautum leidimą puošti eglutę.<br>
+            <span style="font-size:12px">Reikia bent 8 teisingų atsakymų!</span>
+          </p>
         </div>
+        <div id="quiz" class="quiz-container"></div>
+        <div class="quiz-container">
+            <button class="quiz-btn" onclick="finishQuiz()">Patikrinti atsakymus</button>
+            <div id="quiz-result"></div>
+        </div>
+      </div>
 
-        <div class="final-message-container">
-            <div class="final-msg" id="finalMsg">
-                O dabar įžiebk ne moderniąją,<br>o tikrąją eglutę! ✨
+      <div id="tree-view">
+        <div class="stage" id="dropZone">
+          <div class="tree-zone">
+            <div class="tree" id="tree">
+              <div class="branch b1"></div>
+              <div class="branch b2"></div>
+              <div class="branch b3"></div>
+              <div class="trunk"></div>
+              
+              <div id="lights-container"></div>
+              <div id="ornaments-container"></div>
             </div>
+          </div>
+
+          <div class="final-message-container">
+              <div class="final-msg" id="finalMsg">
+                  O dabar įžiebk ne moderniąją,<br>o tikrąją eglutę! ✨
+              </div>
+          </div>
+
+          <div class="palette-area" id="paletteArea">
+            <div style="font-size:12px;color:#8be9fd;opacity:0.7;margin-bottom:4px">Tempk ant eglės arba spausk (5 vnt.)</div>
+            <div class="ornament-palette">
+              <div class="orn" draggable="true" id="o1" data-color="#ff4757" style="background:radial-gradient(circle at 30% 30%, #ff6b81, #c4001d);"></div>
+              <div class="orn" draggable="true" id="o2" data-color="#ffa502" style="background:radial-gradient(circle at 30% 30%, #ffd32a, #ff9f1a);"></div>
+              <div class="orn" draggable="true" id="o3" data-color="#2ed573" style="background:radial-gradient(circle at 30% 30%, #7bed9f, #26af61);"></div>
+              <div class="orn" draggable="true" id="o4" data-color="#1e90ff" style="background:radial-gradient(circle at 30% 30%, #70a1ff, #1e90ff);"></div>
+              <div class="orn" draggable="true" id="o5" data-color="#a55eea" style="background:radial-gradient(circle at 30% 30%, #d980fa, #a55eea);"></div>
+            </div>
+          </div>
         </div>
 
-        <div class="palette-area" id="paletteArea">
-          <div style="font-size:12px;color:#8be9fd;opacity:0.7;margin-bottom:4px">Tempk arba spausk (5 vnt.)</div>
-          <div class="ornament-palette">
-            <div class="orn" draggable="true" id="o1" data-color="#ff4757" style="background:radial-gradient(circle at 30% 30%, #ff6b81, #c4001d);"></div>
-            <div class="orn" draggable="true" id="o2" data-color="#ffa502" style="background:radial-gradient(circle at 30% 30%, #ffd32a, #ff9f1a);"></div>
-            <div class="orn" draggable="true" id="o3" data-color="#2ed573" style="background:radial-gradient(circle at 30% 30%, #7bed9f, #26af61);"></div>
-            <div class="orn" draggable="true" id="o4" data-color="#1e90ff" style="background:radial-gradient(circle at 30% 30%, #70a1ff, #1e90ff);"></div>
-            <div class="orn" draggable="true" id="o5" data-color="#a55eea" style="background:radial-gradient(circle at 30% 30%, #d980fa, #a55eea);"></div>
+        <div class="panel">
+          <div>
+            <h1>Modernus Kalėdų Senelis kviečia į modernų įžiebimą</h1>
+            <p class="lead" style="margin-top:10px">1. Papuošk eglutę 5 žaisliukais.<br>2. Palaikyk mygtuką, kol įsikraus.</p>
+          </div>
+
+          <div class="power-btn locked" id="powerBtn">
+            <div class="progress-fill"></div>
+            <svg class="power-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z"/>
+            </svg>
+          </div>
+
+          <div style="text-align:center">
+            <div id="statusText" style="font-weight:700;color:#888;font-size:14px">Laukiama papuošimų...</div>
           </div>
         </div>
       </div>
-
-      <div class="panel">
-        <div>
-          <h1>Modernus Kalėdų Senelis kviečia į modernų įžiebimą</h1>
-          <p class="lead" style="margin-top:10px">1. Papuošk eglutę 5 žaisliukais.<br>2. Palaikyk mygtuką, kol įsikraus.</p>
-        </div>
-
-        <div class="power-btn locked" id="powerBtn">
-          <div class="progress-fill"></div>
-          <svg class="power-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z"/>
-          </svg>
-        </div>
-
-        <div style="text-align:center">
-          <div id="statusText" style="font-weight:700;color:#888;font-size:14px">Laukiama papuošimų...</div>
-        </div>
       </div>
-
-    </div>
   </div>
 
 <script>
+  /* =========================================
+     1. VIKTORINOS LOGIKA
+     ========================================= */
+  const quizQuestions=[
+   {q:"Populiariausias Kalėdinis filmas yra...", a:["Kaip Grinčas Kalėdas vogė","Vienas namuose","Košmaras prieš Kalėdas"], c:1},
+   {q:"Kokiame mieste pirmą kartą buvo papuošta Kalėdų Eglė?", a:["Rygoje","Niujorke","Londone","Berlyne"], c:0},
+   {q:"Kodėl Kalėdų senelis vaizduojamas raudonais rūbais?", a:["Tokia tradicija","Taip jį pavaizdavo Coca-Cola reklamoje","Nes raudona yra tradicinė spalva"], c:1},
+   {q:"Populiariausia Kalėdinė daina yra...", a:["Jingle Bells","Silent night","All I want for Christmas is you","White Christmas"], c:3},
+   {q:"Kiek elnių turi Kalėdų senelis?", a:["5","7","9"], c:2},
+   {q:"Kiek patiekalų yra gaminama per Kūčias?", a:["8","10","12","14"], c:2},
+   {q:"Kokiame mieste gimė Jėzus Kristus?", a:["Jeruzalėje","Betliejuje","Nazarete"], c:1},
+   {q:"Kokios spalvos yra elnio Rudolfo nosis?", a:["Raudonos","Juodos","Mėlynos"], c:0},
+   {q:"Kur gyvena Kalėdų senelis?", a:["Grenlandijoje","Laplandijoje","Antarktidoje"], c:1},
+   {q:"Koks yra Kalėdų senelio transportas?", a:["Hohomobilis","Elnių traukiamos rogės","Motoroleris"], c:1}
+  ];
+
+  let quizHtml="";
+  quizQuestions.forEach((q,i)=>{
+   quizHtml+=`<div class='q-item'><h3>${i+1}. ${q.q}</h3>`;
+   q.a.forEach((opt,oi)=>{
+     quizHtml+=`<label><input type='radio' name='q${i}' value='${oi}'> ${opt}</label>`;
+   });
+   quizHtml+=`</div>`;
+  });
+  document.getElementById("quiz").innerHTML=quizHtml;
+
+  function finishQuiz(){
+   let score=0;
+   quizQuestions.forEach((q,i)=>{
+     let chosen=document.querySelector(`input[name='q${i}']:checked`);
+     if(chosen && Number(chosen.value)===q.c) score++;
+   });
+
+   const resDiv = document.getElementById("result");
+   const resultText = document.getElementById("quiz-result");
+   
+   if(score>=8){
+     resultText.innerHTML = `<span class="text-success">Puiku! Surinkai ${score}/10.</span><br>Atidaroma eglutė...`;
+     
+     // Išsaugom, kad praėjo (jei perkraus)
+     localStorage.setItem("xmasQuizPassed","true");
+     
+     // Pereinam prie eglutės
+     setTimeout(()=>{
+       document.getElementById("quiz-view").style.display = "none";
+       const treeView = document.getElementById("tree-view");
+       treeView.style.display = "flex";
+       // Jei mobilus, pakeičiam stilių, kad tilptų
+       if(window.innerWidth <= 850) {
+         treeView.style.flexDirection = "column";
+       }
+       // Atstatom scrollą į viršų
+       document.querySelector('.wrap').scrollTop = 0;
+     }, 1500);
+
+   } else {
+     resultText.innerHTML = `<span class="text-fail">Surinkai ${score}/10.</span><br>Reikia bent 8, kad pamatytum eglutę! Bandyk dar kartą.`;
+   }
+  }
+  
+  // Patikrinam, gal jau praeita anksčiau?
+  if(localStorage.getItem("xmasQuizPassed") === "true"){
+     document.getElementById("quiz-view").style.display = "none";
+     const tv = document.getElementById("tree-view");
+     tv.style.display = "flex";
+     if(window.innerWidth <= 850) tv.style.flexDirection = "column";
+  }
+
+
+  /* =========================================
+     2. EGLUTĖS LOGIKA
+     ========================================= */
   const ornContainer = document.getElementById('ornaments-container');
   const lightsContainer = document.getElementById('lights-container');
   const orns = document.querySelectorAll('.orn');
@@ -296,7 +455,7 @@
   let currentDragOrn = null;
   let isDragging = false;
 
-  // 1. GENERUOJAM RYŠKIAS LEMPUTES
+  // GENERUOJAM RYŠKIAS LEMPUTES
   const bulbPositions = [
     {top: 40, left: 105}, {top: 70, left: 90}, {top: 75, left: 125},
     {top: 110, left: 70}, {top: 120, left: 110}, {top: 115, left: 150},
@@ -314,7 +473,7 @@
     lightsContainer.appendChild(b);
   });
 
-  // 2. ŽAISLIUKŲ DĖJIMAS
+  // ŽAISLIUKŲ DĖJIMAS
   const placeOrnament = (ornElement, x, y) => {
     if(ornElement.classList.contains('used')) return;
     
@@ -345,7 +504,7 @@
     checkStatus();
   };
 
-  // 3. DESKTOP DRAG & DROP
+  // DESKTOP DRAG & DROP
   orns.forEach(o => {
     o.addEventListener('dragstart', (e) => { 
       e.dataTransfer.setData('id', o.id);
@@ -363,7 +522,7 @@
     }
   });
 
-  // 4. MOBILE TOUCH DRAG
+  // MOBILE TOUCH DRAG
   orns.forEach(o => {
     let touchStartX, touchStartY;
     let hasMoved = false;
@@ -469,7 +628,7 @@
     }
   }
 
-  // 5. ĮJUNGIMAS
+  // ĮJUNGIMAS
   const startCharge = (e) => {
     if(!isUnlocked || isPoweredOn) return;
     e.preventDefault(); 
