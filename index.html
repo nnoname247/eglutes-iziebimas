@@ -12,7 +12,10 @@
       --accent2:#7c4dff; 
       --success:#54e346;
     }
-    *{box-sizing:border-box;font-family:Inter,system-ui,sans-serif;user-select:none;-webkit-user-select:none; -webkit-tap-highlight-color: transparent;}
+    *{box-sizing:border-box;font-family:Inter,system-ui,sans-serif;-webkit-tap-highlight-color: transparent;}
+    .stage, .tree, .branch, .trunk, .bulb, .placed-orn {
+      user-select:none;-webkit-user-select:none;
+    }
     
     html,body{
       height:100%; margin:0; overflow:hidden;
@@ -90,6 +93,7 @@
       cursor:pointer; transition:transform 0.2s;
       border:2px solid rgba(255,255,255,0.15);
       position:relative;
+      touch-action: none;
     }
     .orn:active{transform:scale(0.9)}
     .orn.used{opacity:0.2;pointer-events:none;filter:grayscale(1)}
@@ -131,7 +135,20 @@
     }
     .power-btn.locked{opacity:0.5; filter:grayscale(0.8);}
     .power-btn:active:not(.locked){transform:scale(0.94)}
-    .power-icon{font-size:40px; color:var(--accent); z-index:2; transition: color 0.3s}
+    .power-icon{
+      font-size:40px; 
+      color:var(--accent); 
+      z-index:2; 
+      transition: color 0.3s;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .power-icon::before {
+      content: '⏻';
+      display: block;
+    }
     
     .progress-fill{
       position:absolute; bottom:0; left:0; width:100%; height:0%;
@@ -142,6 +159,32 @@
     
     body.lights-on .power-btn { box-shadow: 0 0 60px var(--accent2); border-color:#fff; }
     body.lights-on .power-icon { color: #fff; text-shadow:0 0 20px #fff; }
+
+    /* Snaigės */
+    #snow-layer {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 9999;
+      opacity: 0;
+      transition: opacity 1s;
+    }
+    #snow-layer.visible { opacity: 1; }
+    .snowflake {
+      position: absolute;
+      color: white;
+      top: -50px;
+      opacity: 0.85;
+      pointer-events: none;
+      will-change: transform;
+      animation: fall linear infinite;
+    }
+    @keyframes fall {
+      0% { transform: translateY(0) rotate(0deg); }
+      100% { transform: translateY(calc(100vh + 100px)) rotate(360deg); }
+    }
 
     /* Mobile */
     @media (max-width: 850px) {
@@ -156,6 +199,9 @@
   </style>
 </head>
 <body>
+  <!-- Snaigių sluoksnis -->
+  <div id="snow-layer"></div>
+
   <div class="wrap">
     <div class="card">
       
@@ -198,7 +244,7 @@
 
         <div class="power-btn locked" id="powerBtn">
           <div class="progress-fill"></div>
-          <span class="power-icon">⏻</span>
+          <span class="power-icon"></span>
         </div>
 
         <div style="text-align:center">
@@ -218,6 +264,7 @@
   const dropZone = document.getElementById('dropZone');
   const finalMsg = document.getElementById('finalMsg');
   const paletteArea = document.getElementById('paletteArea');
+  const snowLayer = document.getElementById('snow-layer');
 
   let placedCount = 0;
   const totalRequired = 5;
@@ -243,7 +290,7 @@
     lightsContainer.appendChild(b);
   });
 
-  // 2. DRAG & DROP LOGIKA
+  // 2. DRAG & DROP + TOUCH LOGIKA
   const handlePlace = (ornElement) => {
     if(ornElement.classList.contains('used')) return;
     
@@ -253,7 +300,6 @@
     newOrn.className = 'placed-orn';
     newOrn.style.background = ornElement.dataset.color;
     
-    // Atsitiktinė vieta ant eglės
     const y = 50 + Math.random() * 180;
     const widthAtY = y * 0.6; 
     const x = 110 + (Math.random() * widthAtY - widthAtY/2) - 11;
@@ -266,9 +312,16 @@
     checkStatus();
   };
 
+  // Desktop drag
   orns.forEach(o => {
     o.addEventListener('dragstart', (e) => { e.dataTransfer.setData('id', o.id); });
     o.addEventListener('click', () => handlePlace(o));
+    
+    // Touch support
+    o.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      handlePlace(o);
+    }, {passive: false});
   });
 
   dropZone.addEventListener('dragover', e => e.preventDefault());
@@ -313,11 +366,9 @@
     statusText.textContent = "EGLUTĖ ĮŽIEBTA!";
     statusText.style.color = "#54e346";
     
-    // Paslepiam paletę, kad netrukdytų žinutei
     paletteArea.style.opacity = '0';
     paletteArea.style.pointerEvents = 'none';
 
-    // Rodyti žinutę
     setTimeout(() => {
         finalMsg.classList.add('visible');
     }, 500);
@@ -327,8 +378,27 @@
       setTimeout(() => { b.classList.add('on'); }, Math.random() * 800);
     });
 
+    // Snaigės
+    snowLayer.classList.add('visible');
+    for(let i = 0; i < 50; i++) {
+      setTimeout(createSnowflake, i * 80);
+    }
+    setInterval(createSnowflake, 300);
+
     if(navigator.vibrate) navigator.vibrate([100,50,100]);
   };
+
+  function createSnowflake() {
+    const flake = document.createElement('div');
+    flake.classList.add('snowflake');
+    const symbols = ['❄','❅','❆','✦'];
+    flake.innerHTML = symbols[Math.floor(Math.random() * symbols.length)];
+    flake.style.left = Math.random() * 100 + 'vw';
+    flake.style.fontSize = (12 + Math.random() * 18) + 'px';
+    flake.style.animationDuration = (4 + Math.random() * 4) + 's';
+    snowLayer.appendChild(flake);
+    setTimeout(() => flake.remove(), 9000);
+  }
 
   powerBtn.addEventListener('mousedown', startCharge);
   powerBtn.addEventListener('touchstart', startCharge, {passive: false});
