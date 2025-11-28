@@ -86,6 +86,7 @@
     .palette-area{
       width:100%; margin-top:auto; padding-top:10px;
       display:flex; flex-direction:column; align-items:center; gap:8px;
+      transition: opacity 0.5s;
     }
     .ornament-palette{display:flex; gap:12px; justify-content:center; flex-wrap:wrap;}
     .orn{
@@ -97,6 +98,20 @@
     }
     .orn:active{transform:scale(0.9)}
     .orn.used{opacity:0.2;pointer-events:none;filter:grayscale(1)}
+    .orn.dragging{opacity:0.5;transform:scale(1.1)}
+
+    /* Tempimo kopija */
+    .drag-ghost{
+      position:fixed;
+      width:44px; height:44px;
+      border-radius:50%;
+      pointer-events:none;
+      z-index:10000;
+      opacity:0.8;
+      transform:translate(-50%, -50%);
+      box-shadow:0 8px 20px rgba(0,0,0,0.6);
+      border:2px solid rgba(255,255,255,0.3);
+    }
 
     /* Pabaigos žinutė po eglute */
     .final-message-container {
@@ -122,7 +137,7 @@
     .panel h1{font-size:24px; margin:0; line-height:1.3; background: linear-gradient(to right, #fff, #bcd9ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent;}
     .panel p.lead{font-size:14px; color:#bcd9ffaa; margin:0}
 
-    /* Mygtukas */
+    /* Mygtukas su SVG ikona */
     .power-btn{
       width:110px; height:110px; border-radius:50%;
       background:radial-gradient(circle, #1e2a45, #0b1221);
@@ -132,22 +147,18 @@
       box-shadow:0 15px 35px rgba(0,0,0,0.4);
       transition: transform 0.2s, box-shadow 0.3s;
       margin-top: 20px;
+      touch-action: manipulation;
     }
     .power-btn.locked{opacity:0.5; filter:grayscale(0.8);}
     .power-btn:active:not(.locked){transform:scale(0.94)}
+    
     .power-icon{
-      font-size:40px; 
-      color:var(--accent); 
-      z-index:2; 
-      transition: color 0.3s;
-      line-height: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .power-icon::before {
-      content: '⏻';
-      display: block;
+      width: 50px;
+      height: 50px;
+      z-index:2;
+      transition: all 0.3s;
+      fill: var(--accent);
+      filter: drop-shadow(0 0 8px var(--accent));
     }
     
     .progress-fill{
@@ -158,7 +169,10 @@
     .power-btn.charging .progress-fill { height: 100%; transition: height 2s linear; opacity: 0.9; }
     
     body.lights-on .power-btn { box-shadow: 0 0 60px var(--accent2); border-color:#fff; }
-    body.lights-on .power-icon { color: #fff; text-shadow:0 0 20px #fff; }
+    body.lights-on .power-icon { 
+      fill: #fff;
+      filter: drop-shadow(0 0 20px #fff);
+    }
 
     /* Snaigės */
     #snow-layer {
@@ -194,7 +208,9 @@
       .panel{ flex:none; gap: 16px; padding-top:0;}
       .panel h1 { font-size: 20px; }
       .power-btn{ width:90px; height:90px; margin-top: 10px; }
+      .power-icon { width: 40px; height: 40px; }
       .orn{width:42px; height:42px;}
+      .drag-ghost{width:42px; height:42px;}
     }
   </style>
 </head>
@@ -244,7 +260,9 @@
 
         <div class="power-btn locked" id="powerBtn">
           <div class="progress-fill"></div>
-          <span class="power-icon"></span>
+          <svg class="power-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z"/>
+          </svg>
         </div>
 
         <div style="text-align:center">
@@ -265,12 +283,18 @@
   const finalMsg = document.getElementById('finalMsg');
   const paletteArea = document.getElementById('paletteArea');
   const snowLayer = document.getElementById('snow-layer');
+  const treeElement = document.getElementById('tree');
 
   let placedCount = 0;
   const totalRequired = 5;
   let isUnlocked = false;
   let isPoweredOn = false;
   let chargeTimer = null;
+
+  // Drag state
+  let dragGhost = null;
+  let currentDragOrn = null;
+  let isDragging = false;
 
   // 1. GENERUOJAM RYŠKIAS LEMPUTES
   const bulbPositions = [
@@ -290,8 +314,8 @@
     lightsContainer.appendChild(b);
   });
 
-  // 2. DRAG & DROP + TOUCH LOGIKA
-  const handlePlace = (ornElement) => {
+  // 2. ŽAISLIUKŲ DĖJIMAS
+  const placeOrnament = (ornElement, x, y) => {
     if(ornElement.classList.contains('used')) return;
     
     ornElement.classList.add('used');
@@ -300,28 +324,33 @@
     newOrn.className = 'placed-orn';
     newOrn.style.background = ornElement.dataset.color;
     
-    const y = 50 + Math.random() * 180;
-    const widthAtY = y * 0.6; 
-    const x = 110 + (Math.random() * widthAtY - widthAtY/2) - 11;
+    // Jei turime koordinates (drag), naudojam jas
+    if(x !== undefined && y !== undefined) {
+      const treeRect = treeElement.getBoundingClientRect();
+      const relX = x - treeRect.left;
+      const relY = y - treeRect.top;
+      newOrn.style.left = relX - 11 + 'px';
+      newOrn.style.top = relY - 11 + 'px';
+    } else {
+      // Atsitiktinė vieta (click)
+      const ornY = 50 + Math.random() * 180;
+      const widthAtY = ornY * 0.6; 
+      const ornX = 110 + (Math.random() * widthAtY - widthAtY/2) - 11;
+      newOrn.style.top = ornY + 'px';
+      newOrn.style.left = ornX + 'px';
+    }
     
-    newOrn.style.top = y + 'px';
-    newOrn.style.left = x + 'px';
     ornContainer.appendChild(newOrn);
-
     placedCount++;
     checkStatus();
   };
 
-  // Desktop drag
+  // 3. DESKTOP DRAG & DROP
   orns.forEach(o => {
-    o.addEventListener('dragstart', (e) => { e.dataTransfer.setData('id', o.id); });
-    o.addEventListener('click', () => handlePlace(o));
-    
-    // Touch support
-    o.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      handlePlace(o);
-    }, {passive: false});
+    o.addEventListener('dragstart', (e) => { 
+      e.dataTransfer.setData('id', o.id);
+      e.dataTransfer.effectAllowed = 'move';
+    });
   });
 
   dropZone.addEventListener('dragover', e => e.preventDefault());
@@ -329,8 +358,104 @@
     e.preventDefault();
     const id = e.dataTransfer.getData('id');
     const el = document.getElementById(id);
-    if(el) handlePlace(el);
+    if(el && !el.classList.contains('used')) {
+      placeOrnament(el, e.clientX, e.clientY);
+    }
   });
+
+  // 4. MOBILE TOUCH DRAG
+  orns.forEach(o => {
+    let touchStartX, touchStartY;
+    let hasMoved = false;
+
+    o.addEventListener('touchstart', (e) => {
+      if(o.classList.contains('used')) return;
+      
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      hasMoved = false;
+      isDragging = false;
+      currentDragOrn = o;
+
+      // Sukuriam ghost po truputį
+      setTimeout(() => {
+        if(currentDragOrn === o && !hasMoved) {
+          createDragGhost(o, touch.clientX, touch.clientY);
+          isDragging = true;
+          o.classList.add('dragging');
+        }
+      }, 100);
+    }, {passive: true});
+
+    o.addEventListener('touchmove', (e) => {
+      if(!currentDragOrn || currentDragOrn !== o) return;
+      
+      const touch = e.touches[0];
+      const deltaX = Math.abs(touch.clientX - touchStartX);
+      const deltaY = Math.abs(touch.clientY - touchStartY);
+      
+      if(deltaX > 5 || deltaY > 5) {
+        hasMoved = true;
+      }
+
+      if(isDragging && dragGhost) {
+        e.preventDefault();
+        dragGhost.style.left = touch.clientX + 'px';
+        dragGhost.style.top = touch.clientY + 'px';
+      }
+    }, {passive: false});
+
+    o.addEventListener('touchend', (e) => {
+      if(currentDragOrn !== o) return;
+
+      if(isDragging && dragGhost) {
+        e.preventDefault();
+        const touch = e.changedTouches[0];
+        
+        // Patikrinam ar ant eglutės
+        const treeRect = treeElement.getBoundingClientRect();
+        if(touch.clientX >= treeRect.left && touch.clientX <= treeRect.right &&
+           touch.clientY >= treeRect.top && touch.clientY <= treeRect.bottom) {
+          placeOrnament(o, touch.clientX, touch.clientY);
+        }
+        
+        removeDragGhost();
+        o.classList.remove('dragging');
+      } else if(!hasMoved) {
+        // Paprastas tap
+        placeOrnament(o);
+      }
+
+      currentDragOrn = null;
+      isDragging = false;
+    });
+
+    o.addEventListener('touchcancel', () => {
+      if(currentDragOrn === o) {
+        removeDragGhost();
+        o.classList.remove('dragging');
+        currentDragOrn = null;
+        isDragging = false;
+      }
+    });
+  });
+
+  function createDragGhost(ornElement, x, y) {
+    dragGhost = document.createElement('div');
+    dragGhost.className = 'drag-ghost';
+    dragGhost.style.background = ornElement.style.background;
+    dragGhost.style.left = x + 'px';
+    dragGhost.style.top = y + 'px';
+    document.body.appendChild(dragGhost);
+  }
+
+  function removeDragGhost() {
+    if(dragGhost) {
+      dragGhost.remove();
+      dragGhost = null;
+    }
+  }
 
   function checkStatus() {
     if(placedCount >= totalRequired) {
@@ -344,7 +469,7 @@
     }
   }
 
-  // 3. ĮJUNGIMAS
+  // 5. ĮJUNGIMAS
   const startCharge = (e) => {
     if(!isUnlocked || isPoweredOn) return;
     e.preventDefault(); 
@@ -352,7 +477,8 @@
     chargeTimer = setTimeout(turnOnLights, 2000); 
   };
 
-  const stopCharge = () => {
+  const stopCharge = (e) => {
+    if(e) e.preventDefault();
     if(isPoweredOn) return;
     powerBtn.classList.remove('charging');
     clearTimeout(chargeTimer);
@@ -400,10 +526,13 @@
     setTimeout(() => flake.remove(), 9000);
   }
 
+  // Mygtuko įvykiai
   powerBtn.addEventListener('mousedown', startCharge);
   powerBtn.addEventListener('touchstart', startCharge, {passive: false});
-  document.addEventListener('mouseup', stopCharge);
-  document.addEventListener('touchend', stopCharge);
+  powerBtn.addEventListener('mouseup', stopCharge);
+  powerBtn.addEventListener('mouseleave', stopCharge);
+  powerBtn.addEventListener('touchend', stopCharge);
+  powerBtn.addEventListener('touchcancel', stopCharge);
 </script>
 </body>
 </html>
