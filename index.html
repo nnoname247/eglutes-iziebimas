@@ -297,7 +297,7 @@
           <h1>🎄 Kalėdų Bilietas</h1>
           <p style="text-align:center; color:#bcd9ffaa; margin-bottom:20px;">
             Atsakyk į klausimus, kad gautum leidimą puošti eglutę.<br>
-            <span style="font-size:12px">Reikia bent 8 teisingų atsakymų!</span>
+            <span style="font-size:12px">Reikia visų teisingų atsakymų!</span>
           </p>
         </div>
         <div id="quiz" class="quiz-container"></div>
@@ -397,7 +397,7 @@
    const resDiv = document.getElementById("result");
    const resultText = document.getElementById("quiz-result");
    
-   if(score>=8){
+   if(score>=10){
      resultText.innerHTML = `<span class="text-success">Puiku! Surinkai ${score}/10.</span><br>Atidaroma eglutė...`;
      
      // Išsaugom, kad praėjo (jei perkraus)
@@ -417,7 +417,7 @@
      }, 1500);
 
    } else {
-     resultText.innerHTML = `<span class="text-fail">Surinkai ${score}/10.</span><br>Reikia bent 8, kad pamatytum eglutę! Bandyk dar kartą.`;
+     resultText.innerHTML = `<span class="text-fail">Surinkai ${score}/10.</span><br>Reikia visų teisingų atsakymų, kad pamatytum eglutę! Bandyk dar kartą.`;
    }
   }
   
